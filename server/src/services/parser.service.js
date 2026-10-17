@@ -116,43 +116,7 @@ export const parseDocument = async ({ filePath, mimeType, originalName }) => {
   // Generate Base64 preview data URL for frontend rendering
   const previewDataUrl = `data:${mimeType};base64,${fileBuffer.toString("base64")}`;
 
-  // 1. Fast-path for PDF documents: If PDF has direct readable digital text, extract in milliseconds
-  if (mimeType === "application/pdf") {
-    try {
-      const parser = new PDFParse({ data: fileBuffer });
-      const pdfRes = await parser.getText();
-      const rawText = pdfRes.text || "";
-      const cleanText = rawText.replace(/-- \d+ of \d+ --/g, "").trim();
-
-      if (cleanText.length > 60) {
-        let ocrPages = [];
-        if (Array.isArray(pdfRes.pages) && pdfRes.pages.length > 0) {
-          ocrPages = pdfRes.pages.map((p, idx) => ({
-            pageNumber: idx + 1,
-            text: normalizeOcrText(p.text || ""),
-          }));
-        } else {
-          const splitPages = rawText.split("\f");
-          ocrPages = splitPages.map((t, idx) => ({
-            pageNumber: idx + 1,
-            text: normalizeOcrText(t),
-          }));
-        }
-
-        const fullText = ocrPages.map((p) => p.text).join("\n\n").trim();
-        return {
-          ocrPages,
-          fullText,
-          method: "pdf_fast_extract",
-          previewDataUrl,
-        };
-      }
-    } catch (e) {
-      // Continue to LlamaParse / OCR
-    }
-  }
-
-  // 2. Try LlamaParse (with 12s ceiling)
+  // 1. Primary: LlamaParse (Cloud Document AI for PDFs and Images)
   const llamaResult = await parseWithLlamaParse(filePath, mimeType);
   if (llamaResult && llamaResult.fullText.trim().length > 0) {
     return {
@@ -161,35 +125,13 @@ export const parseDocument = async ({ filePath, mimeType, originalName }) => {
     };
   }
 
-  // 3. Fallback for PDF documents if LlamaParse didn't handle it
+  // 2. Fallback: Tesseract OCR (Local high-speed OCR engine)
   if (mimeType === "application/pdf") {
     try {
+      // Render PDF pages to screenshot buffers so Tesseract OCR can process them
       const parser = new PDFParse({ data: fileBuffer });
-      const pdfRes = await parser.getText();
-
-      const splitPages = (pdfRes.text || "").split("\f");
-      const textPages = splitPages.map((t, idx) => ({
-        pageNumber: idx + 1,
-        text: normalizeOcrText(t),
-      }));
-
-      const digitalText = textPages.map((p) => p.text).join("\n\n").trim();
-      const cleanDigital = digitalText.replace(/-- \d+ of \d+ --/g, "").trim();
-
-      // If PDF had meaningful digital text, use it
-      if (cleanDigital.length > 40) {
-        return {
-          ocrPages: textPages,
-          fullText: digitalText,
-          method: "pdf_extract",
-          previewDataUrl,
-        };
-      }
-
-      // If digital text is empty or negligible (scanned / image-only PDF),
-      // render PDF pages to screenshots and run Tesseract OCR
-      console.log("ℹ️ Scanned PDF detected (no digital text). Extracting page images and running Tesseract OCR...");
       const screenshotRes = await parser.getScreenshot();
+
       if (screenshotRes?.pages?.length > 0) {
         const ocrPages = [];
 
@@ -207,25 +149,17 @@ export const parseDocument = async ({ filePath, mimeType, originalName }) => {
           return {
             ocrPages,
             fullText,
-            method: "pdf_ocr_screenshot",
+            method: "tesseract_ocr",
             previewDataUrl,
           };
         }
       }
-
-      return {
-        ocrPages: textPages,
-        fullText: digitalText,
-        method: "pdf_extract",
-        previewDataUrl,
-      };
     } catch (pdfError) {
-      console.error("❌ PDF text extraction failed:", pdfError.message);
+      console.error("❌ PDF Tesseract OCR failed:", pdfError.message);
       throw new Error(`Failed to extract text from PDF: ${pdfError.message}`);
     }
   }
 
-  // 4. Fast local fallback for Image documents (PNG, JPG, JPEG) using Tesseract
   if (
     mimeType === "image/png" ||
     mimeType === "image/jpeg" ||
@@ -250,7 +184,6 @@ export const parseDocument = async ({ filePath, mimeType, originalName }) => {
       previewDataUrl,
     };
   }
-
 
   throw new Error(`Unsupported document MIME type: ${mimeType}`);
 };
