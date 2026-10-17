@@ -39,6 +39,7 @@ export default function App() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isLoadingDoc, setIsLoadingDoc] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [notification, setNotification] = useState(null);
   const [showUploadModal, setShowUploadModal] = useState(true);
   const [confirmModal, setConfirmModal] = useState({
@@ -46,6 +47,7 @@ export default function App() {
     title: "",
     message: "",
     confirmText: "Delete",
+    loadingText: "Deleting...",
     confirmVariant: "danger",
     onConfirm: () => {},
   });
@@ -162,9 +164,10 @@ export default function App() {
       title: "Delete Document",
       message: `Are you sure you want to delete ${docName}? This will permanently remove the document, its extracted data, and chat history.`,
       confirmText: "Delete Document",
+      loadingText: "Deleting Document...",
       confirmVariant: "danger",
       onConfirm: async () => {
-        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        setIsDeleting(true);
         try {
           await deleteDocument(id);
           showToast("Document deleted successfully.", "info");
@@ -179,8 +182,11 @@ export default function App() {
               handleResetToHome();
             }
           }
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         } catch (err) {
           showToast(err.response?.data?.message || err.message, "error");
+        } finally {
+          setIsDeleting(false);
         }
       },
     });
@@ -192,9 +198,10 @@ export default function App() {
       title: "Delete All Documents",
       message: `Are you sure you want to delete all ${documents.length} documents? This action will permanently wipe your document history and cannot be undone.`,
       confirmText: "Delete All Documents",
+      loadingText: "Deleting All...",
       confirmVariant: "danger",
       onConfirm: async () => {
-        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        setIsDeleting(true);
         try {
           await deleteAllDocuments();
           showToast("All documents deleted successfully.", "info");
@@ -202,8 +209,11 @@ export default function App() {
           setActiveDocument(null);
           setShowUploadModal(true);
           setCurrentView("workspace");
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         } catch (err) {
           showToast(err.response?.data?.message || err.message, "error");
+        } finally {
+          setIsDeleting(false);
         }
       },
     });
@@ -638,9 +648,13 @@ export default function App() {
         title={confirmModal.title}
         message={confirmModal.message}
         confirmText={confirmModal.confirmText}
+        loadingText={confirmModal.loadingText || "Deleting..."}
         confirmVariant={confirmModal.confirmVariant}
+        isLoading={isDeleting}
         onConfirm={confirmModal.onConfirm}
-        onCancel={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+        onCancel={() => {
+          if (!isDeleting) setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        }}
       />
     </div>
   );

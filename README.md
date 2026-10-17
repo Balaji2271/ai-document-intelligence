@@ -27,7 +27,7 @@ Driving licence documents vary significantly across jurisdictions (e.g. Maharash
 
 This application delivers a robust solution that:
 - Ingests **PDF, PNG, JPG, JPEG, and WEBP** driving licences (up to 5MB).
-- Employs a **multi-tiered parsing engine**: fast-path digital PDF extraction, cloud vision extraction via **LlamaParse**, and resilient local fallback via **Tesseract.js**.
+- Employs a **streamlined 2-tiered parsing engine**: cloud document intelligence via **LlamaParse** (cost-effective tier with layout analysis) and resilient local fallback via **Tesseract.js** (supporting direct images and in-memory rasterized PDFs).
 - Runs a **hybrid extraction engine**: an immediate deterministic heuristic baseline merged with **NVIDIA NIM** (`meta/llama-3.2-11b-vision-instruct`) structured inference.
 - Auto-populates a structured form organized into 4 categorized cards (Identity, Validity, Jurisdiction, Authorisations) with dedicated **Blood Group** detection.
 - Provides interactive **Human-in-the-Loop (HITL) review**: field-level confidence scores, exact OCR evidence accordions, manual correction tracking, and read-only locking on save.
@@ -79,9 +79,9 @@ This application delivers a robust solution that:
        ▼                          │                     │               ▼
 ┌───────────────────────┐         │                     │     ┌───────────────────────┐
 │   PARSER PIPELINE     │         │                     │     │     RAG SERVICE       │
-│ 1. pdf-parse (<100ms) │         │                     │     │ 1. Keyword Expansion  │
-│ 2. LlamaParse (Cloud) │         │                     │     │ 2. Candidate Match    │
-│ 3. Tesseract OCR (Img)│         │                     │     │ 3. Evidence Grounding │
+│ 1. LlamaParse (Cloud) │         │                     │     │ 1. Keyword Expansion  │
+│ 2. Tesseract OCR (Lcl)│         │                     │     │ 2. Candidate Match    │
+│    (Img & Raster PDF) │         │                     │     │ 3. Evidence Grounding │
 └──────┬────────────────┘         │                     │     └──────────┬────────────┘
        │ Clean Page Text          │                     │                │
        ▼                          │                     │                ▼
@@ -143,15 +143,15 @@ Extraction prompts strictly demand output conforming to the system JSON contract
 
 ## 5. OCR & Document Parsing Pipeline
 
-The document parser (`server/src/services/parser.service.js`) processes untrusted files through three coordinated tiers:
+The document parser (`server/src/services/parser.service.js`) processes documents through a streamlined 2-tier architecture:
 
-1. **Digital PDF Fast-Path**:
-   Text-based digital PDFs are extracted using `pdf-parse` in `< 100ms`, mapping text to individual pages without image rasterization overhead.
-2. **Cloud Vision Parsing (LlamaParse)**:
-   When `LLAMA_CLOUD_API_KEY` is provided, complex layouts and tables are parsed in Llama Cloud with a strict 12-second ceiling to prevent client timeouts.
-3. **Local OCR Fallback (Tesseract.js)**:
-   Images (PNG, JPG, JPEG, WEBP) and scanned PDFs automatically run through a local multi-threaded Tesseract.js worker with standard whitespace normalization, line break standardization, and layout preservation.
-4. **Resilient Fail-Safe Baseline**:
+1. **Tier 1: Cloud Document Intelligence (LlamaParse)**:
+   All documents (PDFs and images) are sent to LlamaParse (`tier: "cost_effective"`, `version: "latest"`). It preserves complex layouts, tables, and multi-line fields into clean markdown with a strict 12-second polling ceiling to prevent client timeouts.
+2. **Tier 2: High-Speed Local OCR Fallback (Tesseract.js)**:
+   If LlamaParse is unconfigured, times out, or encounters errors:
+   - **Image Documents**: Processed directly via local multi-threaded Tesseract.js.
+   - **PDF Documents**: PDF pages are rendered in-memory to PNG screenshot buffers via `parser.getScreenshot()` and processed through Tesseract.js in ~500ms, with zero external OS dependencies (`poppler-utils` or Ghostscript are not required).
+3. **Resilient Fail-Safe Baseline**:
    An immediate regex and pattern extractor (`extraction.service.js`) parses names, licence numbers, dates, blood groups, and vehicle classes to ensure the form is **100% populated** even if cloud LLM calls experience latency.
 
 ---

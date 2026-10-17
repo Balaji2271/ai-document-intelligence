@@ -18,7 +18,8 @@ import {
   Sparkles,
   Info,
   Edit3,
-  UploadCloud
+  UploadCloud,
+  Loader2
 } from "lucide-react";
 
 // Categorized structure for clear human-in-the-loop review
@@ -344,10 +345,13 @@ export default function LicenceForm({ document, onSave, isSaving, onNewUpload })
                 type="button"
                 onClick={handleSave}
                 disabled={isSaving}
-                className="inline-flex items-center justify-center space-x-1.5 text-xs font-semibold bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white px-3.5 py-1.5 rounded-lg transition-all shadow-md shadow-indigo-600/30 cursor-pointer disabled:opacity-50 active:scale-95 whitespace-nowrap h-8.5"
+                className="inline-flex items-center justify-center space-x-1.5 text-xs font-semibold bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white px-3.5 py-1.5 rounded-lg transition-all shadow-md shadow-indigo-600/30 cursor-pointer disabled:opacity-60 active:scale-95 whitespace-nowrap h-8.5"
               >
                 {isSaving ? (
-                  <span>Saving...</span>
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-white" />
+                    <span>Saving Changes...</span>
+                  </>
                 ) : (
                   <>
                     <Save className="w-3.5 h-3.5" />
@@ -394,7 +398,16 @@ export default function LicenceForm({ document, onSave, isSaving, onNewUpload })
       )}
 
       {/* Form Fields Categorized Body */}
-      <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6">
+      <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 relative">
+        {/* Loading overlay when saving */}
+        {isSaving && (
+          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px] z-30 flex items-center justify-center rounded-b-2xl animate-in fade-in duration-150">
+            <div className="bg-slate-900/95 border border-indigo-500/40 px-5 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 text-sm text-indigo-300 font-medium">
+              <Loader2 className="w-5 h-5 animate-spin text-indigo-400 shrink-0" />
+              <span>Saving verified data to database...</span>
+            </div>
+          </div>
+        )}
         {FIELD_CATEGORIES.map((category, catIdx) => {
           const CategoryIcon = category.icon;
 

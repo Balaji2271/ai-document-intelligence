@@ -40,12 +40,14 @@ export default function DocumentChat({ document, onDocumentUpdate }) {
   );
   const [inputQuery, setInputQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
     title: "",
     message: "",
     confirmText: "Delete",
+    loadingText: "Deleting...",
     confirmVariant: "danger",
     onConfirm: () => { },
   });
@@ -107,9 +109,10 @@ export default function DocumentChat({ document, onDocumentUpdate }) {
       title: "Delete Chat Session",
       message: "Are you sure you want to delete this chat session? Its messages and history will be permanently deleted.",
       confirmText: "Delete Session",
+      loadingText: "Deleting Session...",
       confirmVariant: "danger",
       onConfirm: async () => {
-        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        setIsDeleting(true);
         try {
           const res = await deleteChatSession(document._id, activeSessionId);
           const updatedSessions = res.chatSessions || [];
@@ -118,8 +121,11 @@ export default function DocumentChat({ document, onDocumentUpdate }) {
           if (onDocumentUpdate) {
             onDocumentUpdate({ ...document, chatSessions: updatedSessions });
           }
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         } catch (err) {
           setErrorMessage(err.message || "Failed to delete session.");
+        } finally {
+          setIsDeleting(false);
         }
       },
     });
@@ -131,9 +137,10 @@ export default function DocumentChat({ document, onDocumentUpdate }) {
       title: "Clear All Chat Sessions",
       message: "Are you sure you want to clear ALL chat sessions for this licence? All conversation history will be permanently deleted.",
       confirmText: "Clear All",
+      loadingText: "Clearing All...",
       confirmVariant: "danger",
       onConfirm: async () => {
-        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        setIsDeleting(true);
         try {
           await clearAllChatSessions(document._id);
           setSessions([]);
@@ -141,8 +148,11 @@ export default function DocumentChat({ document, onDocumentUpdate }) {
           if (onDocumentUpdate) {
             onDocumentUpdate({ ...document, chatSessions: [] });
           }
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         } catch (err) {
           setErrorMessage(err.message || "Failed to clear sessions.");
+        } finally {
+          setIsDeleting(false);
         }
       },
     });
@@ -431,9 +441,13 @@ export default function DocumentChat({ document, onDocumentUpdate }) {
         title={confirmModal.title}
         message={confirmModal.message}
         confirmText={confirmModal.confirmText}
+        loadingText={confirmModal.loadingText || "Deleting..."}
         confirmVariant={confirmModal.confirmVariant}
+        isLoading={isDeleting}
         onConfirm={confirmModal.onConfirm}
-        onCancel={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+        onCancel={() => {
+          if (!isDeleting) setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        }}
       />
     </div>
   );
