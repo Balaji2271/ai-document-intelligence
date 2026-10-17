@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Environment variables & secrets
+.env
+.env.*
+.env.local
+.env.*.local
+!.env.example
+
+# Production Build Output
+dist/
+dist-ssr/
+build/
+*.tsbuildinfo
+
+# Uploads & temporary files
+server/uploads/*
+!server/uploads/.gitkeep
+uploads/
+temp/
+tmp/
+scratch/
+
+# OCR binaries & language data caches
+*.traineddata
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*

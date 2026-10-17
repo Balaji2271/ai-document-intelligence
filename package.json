@@ -1,0 +1,25 @@
+{
+  "name": "ai-document-intelligence",
+  "version": "1.0.0",
+  "description": "AI-Powered Driving Licence Document Intelligence Application",
+  "private": true,
+  "scripts": {
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "start:server": "npm --prefix server start",
+    "build:client": "npm --prefix client run build",
+    "test:server": "npm --prefix server test"
+  },
+  "keywords": [
+    "document-intelligence",
+    "ocr",
+    "tesseract",
+    "nvidia-nim",
+    "rag",
+    "express",
+    "react",
+    "vite"
+  ],
+  "author": "Balaji V",
+  "license": "ISC"
+}
