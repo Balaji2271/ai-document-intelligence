@@ -30,6 +30,8 @@ const parseWithLlamaParse = async (filePath, mimeType) => {
     const formData = new FormData();
     const blob = new Blob([fileBuffer], { type: mimeType });
     formData.append("file", blob, fileName);
+    // Explicitly use LlamaParse's fast, cost-effective tier (vs slow multi-agent agentic mode)
+    formData.append("tier", "cost_effective");
 
     const uploadRes = await fetch(
       "https://api.cloud.llamaindex.ai/api/v1/parsing/upload",
