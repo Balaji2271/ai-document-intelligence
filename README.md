@@ -51,9 +51,8 @@ This application delivers a robust solution that:
 - **Server Framework**: **Express 5**
 - **File Ingestion**: **Multer** (in-memory buffer storage, 5MB file ceiling)
 - **Database / ODM**: **MongoDB Atlas** with **Mongoose 9**
-- **OCR Engine**: **Tesseract.js 7** (local multi-threaded engine)
-- **PDF Engine**: **pdf-parse** (instant page-aware text stream extraction)
-- **Cloud Document Parser**: **LlamaParse API** (optional cloud layout analysis with 12s polling ceiling)
+- **Cloud Document Parser**: **LlamaParse API** (Required primary cloud document intelligence engine using `cost_effective` tier with full layout analysis)
+- **OCR Engine**: **Tesseract.js 7** (Local multi-threaded engine fallback)
 - **AI Inference**: **NVIDIA API Catalog / NVIDIA NIM** (`https://integrate.api.nvidia.com/v1`)
 - **Validation**: Native JavaScript schema sanitization and regex date normalization
 
@@ -232,7 +231,7 @@ NVIDIA_FALLBACK_MODEL=google/diffusiongemma-26b-a4b-it,poolside/laguna-xs-2.1
 NVIDIA_TIMEOUT_MS=15000
 NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1
 MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/ai_document_intelligence?retryWrites=true&w=majority
-LLAMA_CLOUD_API_KEY=llx-optional-key-here
+LLAMA_CLOUD_API_KEY=llx-your-llama-cloud-api-key
 ```
 
 ### 3. Run the Application
@@ -272,7 +271,7 @@ npm test
 | `NVIDIA_FALLBACK_MODEL` | Comma-separated fallback models for failover | No | `google/diffusiongemma-26b-a4b-it,poolside/laguna-xs-2.1` |
 | `NVIDIA_TIMEOUT_MS` | Per-attempt timeout before failover (ms) | No | `15000` (15s) |
 | `NVIDIA_BASE_URL` | NVIDIA API base URL | No | `https://integrate.api.nvidia.com/v1` |
-| `LLAMA_CLOUD_API_KEY` | LlamaParse Cloud API Key | Optional | Local Tesseract OCR fallback |
+| `LLAMA_CLOUD_API_KEY` | LlamaParse Cloud API Key | Required (for Tier 1 Document AI) | Local Tesseract OCR fallback if unconfigured |
 
 > **Frontend Deployment Note (Vercel / Netlify):**
 > Locally, the frontend automatically proxies API calls to `http://localhost:5001`. When deploying to Vercel, simply add `VITE_API_URL` (e.g. `https://your-backend.onrender.com/api`) in the Vercel Project Dashboard under **Environment Variables**.
