@@ -217,7 +217,7 @@ npm install
 # Install frontend dependencies
 cd ../client
 npm install
-cd ..
+
 ```
 
 ### 2. Configure Environment Variables
