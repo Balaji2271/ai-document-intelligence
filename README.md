@@ -274,6 +274,9 @@ npm test
 | `NVIDIA_BASE_URL` | NVIDIA API base URL | No | `https://integrate.api.nvidia.com/v1` |
 | `LLAMA_CLOUD_API_KEY` | LlamaParse Cloud API Key | Optional | Local Tesseract OCR fallback |
 
+> **Frontend Deployment Note (Vercel / Netlify):**
+> Locally, the frontend automatically proxies API calls to `http://localhost:5001`. When deploying to Vercel, simply add `VITE_API_URL` (e.g. `https://your-backend.onrender.com/api`) in the Vercel Project Dashboard under **Environment Variables**.
+
 ---
 
 ## 10. API Specification
