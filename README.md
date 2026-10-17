@@ -44,7 +44,7 @@ This application delivers a robust solution that:
 - **Typography**: Google Fonts (*Plus Jakarta Sans*, *JetBrains Mono*)
 - **HTTP Client**: **Axios** (configured with 180s timeout and upload progress tracking)
 - **Icons**: **Lucide React**
-- **Language**: Pure JavaScript (ES Modules, NO TypeScript)
+- **Language**: Pure JavaScript (ES Modules)
 
 ### Backend
 - **Runtime**: **Node.js** with ES Modules (`"type": "module"`)
@@ -293,8 +293,8 @@ npm test
 
 ## 11. Key Technical Decisions
 
-1. **Pure JavaScript ES Modules (No TypeScript)**:
-   Strictly complies with the assessment guidelines to build the entire stack using pure JavaScript (`import`/`export`), avoiding TypeScript build complexities.
+1. **Pure JavaScript ES Modules**:
+   Built using modern standard JavaScript (`import`/`export`), ensuring lightweight execution, direct browser compatibility, and zero transpile overhead.
 2. **Lightweight Keyword & Synonym Retrieval over Vector Databases**:
    Driving licences are 1 to 2 pages long (~200–500 words). Vector databases (Pinecone, Chroma) introduce network roundtrips, embedding model expenses, and cold-start latency. An in-memory page-aware synonym scoring engine achieves `< 10ms` retrieval with 100% deterministic quote citation.
 3. **Automated Multi-Model Failover & Cascading Latency Shield**:
