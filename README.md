@@ -251,12 +251,6 @@ npm run dev
 
 Access the application in your browser at: **`http://localhost:5173`**
 
-### 4. Running Automated Tests
-```bash
-cd server
-npm test
-```
-
 ---
 
 ## 9. Environment Variables
