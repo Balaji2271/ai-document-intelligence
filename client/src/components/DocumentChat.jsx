@@ -156,9 +156,43 @@ export default function DocumentChat({ document, onDocumentUpdate }) {
     setErrorMessage(null);
     setIsLoading(true);
 
+    const userMessage = {
+      role: "user",
+      content: query,
+      evidence: [],
+      isFound: true,
+      timestamp: new Date().toISOString(),
+    };
+
+    // Optimistically render user question immediately in the chat log
+    const targetSessionId = activeSessionId || "temp_" + Date.now();
+    setSessions((prevSessions) => {
+      const existing = prevSessions.find((s) => s.sessionId === targetSessionId);
+      if (existing) {
+        return prevSessions.map((s) =>
+          s.sessionId === targetSessionId
+            ? { ...s, messages: [...(s.messages || []), userMessage] }
+            : s
+        );
+      } else {
+        return [
+          {
+            sessionId: targetSessionId,
+            title: query.length > 35 ? query.slice(0, 35) + "..." : query,
+            messages: [userMessage],
+            createdAt: new Date().toISOString(),
+          },
+          ...prevSessions,
+        ];
+      }
+    });
+
+    if (!activeSessionId) {
+      setActiveSessionId(targetSessionId);
+    }
+
     try {
       const response = await askQuestion(document._id, query, activeSessionId);
-      const { answer, isFound, evidence } = response.data;
       const returnedSessionId = response.sessionId;
       const returnedSessions = response.chatSessions || [];
 
