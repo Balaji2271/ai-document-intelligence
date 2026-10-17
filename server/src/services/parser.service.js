@@ -30,7 +30,8 @@ const parseWithLlamaParse = async (filePath, mimeType) => {
     const formData = new FormData();
     const blob = new Blob([fileBuffer], { type: mimeType });
     formData.append("file", blob, fileName);
-    // Explicitly use LlamaParse's fast, cost-effective tier (vs slow multi-agent agentic mode)
+    // LlamaParse requires a version parameter when specifying tier
+    formData.append("version", "latest");
     formData.append("tier", "cost_effective");
 
     const uploadRes = await fetch(
@@ -115,13 +116,15 @@ export const parseDocument = async ({ filePath, mimeType, originalName }) => {
   // Generate Base64 preview data URL for frontend rendering
   const previewDataUrl = `data:${mimeType};base64,${fileBuffer.toString("base64")}`;
 
-  // 1. Fast-path for PDF documents: If PDF has direct readable text, extract in milliseconds
+  // 1. Fast-path for PDF documents: If PDF has direct readable digital text, extract in milliseconds
   if (mimeType === "application/pdf") {
     try {
       const parser = new PDFParse({ data: fileBuffer });
       const pdfRes = await parser.getText();
+      const rawText = pdfRes.text || "";
+      const cleanText = rawText.replace(/-- \d+ of \d+ --/g, "").trim();
 
-      if (pdfRes.text && pdfRes.text.trim().length > 60) {
+      if (cleanText.length > 60) {
         let ocrPages = [];
         if (Array.isArray(pdfRes.pages) && pdfRes.pages.length > 0) {
           ocrPages = pdfRes.pages.map((p, idx) => ({
@@ -129,7 +132,7 @@ export const parseDocument = async ({ filePath, mimeType, originalName }) => {
             text: normalizeOcrText(p.text || ""),
           }));
         } else {
-          const splitPages = (pdfRes.text || "").split("\f");
+          const splitPages = rawText.split("\f");
           ocrPages = splitPages.map((t, idx) => ({
             pageNumber: idx + 1,
             text: normalizeOcrText(t),
@@ -165,16 +168,54 @@ export const parseDocument = async ({ filePath, mimeType, originalName }) => {
       const pdfRes = await parser.getText();
 
       const splitPages = (pdfRes.text || "").split("\f");
-      const ocrPages = splitPages.map((t, idx) => ({
+      const textPages = splitPages.map((t, idx) => ({
         pageNumber: idx + 1,
         text: normalizeOcrText(t),
       }));
 
-      const fullText = ocrPages.map((p) => p.text).join("\n\n").trim();
+      const digitalText = textPages.map((p) => p.text).join("\n\n").trim();
+      const cleanDigital = digitalText.replace(/-- \d+ of \d+ --/g, "").trim();
+
+      // If PDF had meaningful digital text, use it
+      if (cleanDigital.length > 40) {
+        return {
+          ocrPages: textPages,
+          fullText: digitalText,
+          method: "pdf_extract",
+          previewDataUrl,
+        };
+      }
+
+      // If digital text is empty or negligible (scanned / image-only PDF),
+      // render PDF pages to screenshots and run Tesseract OCR
+      console.log("ℹ️ Scanned PDF detected (no digital text). Extracting page images and running Tesseract OCR...");
+      const screenshotRes = await parser.getScreenshot();
+      if (screenshotRes?.pages?.length > 0) {
+        const ocrPages = [];
+
+        for (const page of screenshotRes.pages) {
+          const imgBuffer = Buffer.from(page.data);
+          const ocrResult = await recognizeImage(imgBuffer);
+          ocrPages.push({
+            pageNumber: page.pageNumber || (ocrPages.length + 1),
+            text: ocrResult.text || "",
+          });
+        }
+
+        const fullText = ocrPages.map((p) => p.text).join("\n\n").trim();
+        if (fullText.length > 0) {
+          return {
+            ocrPages,
+            fullText,
+            method: "pdf_ocr_screenshot",
+            previewDataUrl,
+          };
+        }
+      }
 
       return {
-        ocrPages,
-        fullText,
+        ocrPages: textPages,
+        fullText: digitalText,
         method: "pdf_extract",
         previewDataUrl,
       };
