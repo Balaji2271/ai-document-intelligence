@@ -81,6 +81,18 @@ export default function App() {
     try {
       const res = await getDocumentById(id);
       if (res.data) {
+        // Frontend validation: Check if licence number is available before moving to the form page
+        const licenceNum =
+          res.data.reviewedData?.licenceNumber?.value ||
+          res.data.extractedData?.licenceNumber?.value;
+
+        if (!licenceNum || String(licenceNum).trim() === "") {
+          showToast("Uploaded document is not a driving license", "error");
+          setActiveDocument(null);
+          setShowUploadModal(true);
+          return;
+        }
+
         setActiveDocument(res.data);
         setShowUploadModal(false);
         if (targetView) setCurrentView(targetView);
@@ -92,6 +104,7 @@ export default function App() {
       setIsLoadingDoc(false);
     }
   };
+
 
   const handleResetToHome = () => {
     setActiveDocument(null);
@@ -115,6 +128,19 @@ export default function App() {
       setUploadProgress(100);
 
       if (res.data) {
+        // Frontend validation: Check if licence number is available before moving to the form page
+        const licenceNum =
+          res.data.extractedData?.licenceNumber?.value ||
+          res.data.reviewedData?.licenceNumber?.value;
+
+        if (!licenceNum || String(licenceNum).trim() === "") {
+          const errorMsg = "Uploaded document is not a driving license";
+          showToast(errorMsg, "error");
+          setActiveDocument(null);
+          setShowUploadModal(true);
+          throw new Error(errorMsg);
+        }
+
         setActiveDocument(res.data);
         setShowUploadModal(false);
         showToast(res.message || "Document processed successfully!", "success");
@@ -124,8 +150,13 @@ export default function App() {
         setDocuments(updatedDocs.data || []);
       }
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Upload and processing failed.";
+      const msg =
+        err.message === "Uploaded document is not a driving license"
+          ? err.message
+          : err.response?.data?.message || err.message || "Upload and processing failed.";
       showToast(msg, "error");
+      setActiveDocument(null);
+      setShowUploadModal(true);
       throw new Error(msg);
     } finally {
       setIsUploading(false);

@@ -202,6 +202,15 @@ export default function LicenceForm({ document, onSave, isSaving, onNewUpload })
     if (e) e.preventDefault();
     if (!document?._id || isSaving) return;
 
+    // Validate that licence number is present
+    if (!formData.licenceNumber || formData.licenceNumber.trim() === "") {
+      setStatusMessage({
+        type: "error",
+        text: "Uploaded document is not a driving license. Driving licence number is required.",
+      });
+      return;
+    }
+
     // Validate that date fields contain no alphabets
     for (const dk of ["dateOfBirth", "dateOfIssue", "dateOfExpiry"]) {
       const val = formData[dk]?.trim();
@@ -219,6 +228,7 @@ export default function LicenceForm({ document, onSave, isSaving, onNewUpload })
         return;
       }
     }
+
 
     const reviewedPayload = {};
     ALL_FIELD_KEYS.forEach(({ key }) => {
